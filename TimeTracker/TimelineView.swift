@@ -2,7 +2,7 @@
 //  TimelineView.swift
 //  TimeTracker
 //
-//  Created by Ben Xu on 2/18/26.
+//  Created by Ben Xu on 2/19/26.
 //
 
 import SwiftUI
@@ -11,92 +11,69 @@ import SwiftData
 struct TimelineView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TimeSession.startTime, order: .reverse) private var sessions: [TimeSession]
-    @Query(sort: \Activity.name) private var activities: [Activity]
+    
+    @State private var selectedDate: Date = Calendar.current.startOfDay(for: Date())
+
     
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(sessions) { session in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(session.activity?.name ?? "Unknown Activity")
-                                .font(.headline)
-                            
-                            if session.isRunning {
-                                Text("Started at \(session.startTime.formatted(date: .omitted, time: .shortened))")
-                                    .font(.subheadline)
-                                    .foregroundColor(.green)
-                            } else if let endTime = session.endTime {
-                                Text("\(session.startTime.formatted(date: .omitted, time: .shortened)) - \(endTime.formatted(date: .omitted, time: .shortened))")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
+        NavigationStack{
+            VStack(spacing: 0) {
+                weekStrip
                         
-                        Spacer()
-                        
-                        if session.isRunning {
-                            Button {
-                                stopSession(session)
-                            } label: {
-                                Image (systemName: "stop.circle.fill")
-                                    .foregroundColor(.red)
-                                    .font(.title)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                
+                ScrollView { // placeholder for actual timeline
+                    VStack {
+                        Spacer().frame(height: 100)
+                        Text("Timeline")
                     }
+                    .frame(maxWidth: .infinity)
                 }
-                .onDelete(perform: deleteSessions)
             }
             .navigationTitle("Timeline")
-            .safeAreaInset(edge: .bottom) {
-                Menu {
-                    if activities.isEmpty {
-                        Text("No activites found. Add one first!")
-                    } else {
-                        ForEach(activities) { activity in
-                            Button(activity.name) {
-                                startSession(for: activity)
-                            }
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+    
+    private var weekStrip: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 15) {
+                ForEach(currentWeekDates, id: \.self) { date in
+                    let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
+                    
+                    VStack(spacing: 5) {
+                        Text(date.formatted(.dateTime.weekday(.abbreviated)))
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(isSelected ? .blue : .secondary)
+                        
+                        Text(date.formatted(.dateTime.day()))
+                            .font(.title3)
+                            .fontWeight(isSelected ? .bold : .regular)
+                            .foregroundColor(isSelected ? .white : .primary)
+                            .frame(width: 40, height: 40)
+                            .background(isSelected ? Color.blue : Color.clear)
+                            .clipShape(Circle())
+                    }
+                    .onTapGesture {
+                        withAnimation {
+                            selectedDate = Calendar.current.startOfDay(for: date)
                         }
                     }
-                } label: {
-                    HStack {
-                        Image(systemName: "play.circle.fill")
-                        Text("Start Activity")
-                    }
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(15)
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
                 }
             }
+            .padding(.horizontal)
+            .padding(.vertical, 10)
         }
+        .scrollIndicators(.hidden)
+        .background(Color(UIColor.systemBackground))
+        .shadow(color: Color.black.opacity(0.05), radius: 3, y: 3)
     }
     
-    private func startSession(for activity: Activity) {
-        withAnimation {
-            let newSession = TimeSession(activity: activity)
-            modelContext.insert(newSession)
-        }
+    private var currentWeekDates: [Date] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return (-3...3).compactMap { calendar.date(byAdding: .day, value: $0, to: today) }
     }
     
-    private func stopSession(_ session: TimeSession) {
-        withAnimation {
-            session.endTime = Date()
-        }
-    }
-    
-    private func deleteSessions(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(sessions[index])
-            }
-        }
-    }
+
 }
