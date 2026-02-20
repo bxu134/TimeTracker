@@ -23,6 +23,7 @@ struct TimelineView: View {
                 ScrollView {
                     ZStack(alignment: .topLeading) {
                         timeGrid
+                        sessionBlocks
                     }
                     .frame(height: 1440)
                     .padding(.top, 20)
@@ -50,6 +51,38 @@ struct TimelineView: View {
                 }
                 .frame(height: 60, alignment: .top)
             }
+        }
+    }
+    
+    private var sessionBlocks: some View {
+        ForEach(sessions) { session in
+            let topOffset = calculateTopOffset(for: session)
+            let blockHeight = calculateHeight(for: session)
+            
+            HStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.blue.opacity(0.8))
+                    .frame(width: 4)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(session.activity?.name ?? "Unknown")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                    
+                    if blockHeight > 30 {
+                        Text("\(session.startTime.formatted(date: .omitted, time: .shortened))")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                Spacer()
+            }
+            .padding(8)
+            .background(Color.blue.opacity(0.15))
+            .cornerRadius(8)
+            .frame(height: blockHeight)
+            .offset(x: 55, y: topOffset)
+            .padding(.trailing, 65)
         }
     }
     
@@ -98,6 +131,25 @@ struct TimelineView: View {
             if hour == 0 || hour == 24 { return "12 AM" }
             if hour == 12 { return "12 PM" }
             return hour < 12 ? "\(hour) AM" : "\(hour - 12) PM"
-        }
+    }
+    
+    private func calculateTopOffset(for session: TimeSession) -> CGFloat {
+        let startOfDay = selectedDate
+        let actualStart = max(session.startTime,  startOfDay)
+        
+        let minSinceMidnight = actualStart.timeIntervalSince(startOfDay) / 60
+        return CGFloat(minSinceMidnight)
+    }
+    
+    private func calculateHeight(for session: TimeSession) -> CGFloat {
+        let startOfDay = selectedDate
+        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
+        
+        let actualStart = max(session.startTime, startOfDay)
+        let actualEnd = min(session.endTime ?? Date(), endOfDay)
+        
+        let durationInMinutes = actualEnd.timeIntervalSince(actualStart) / 60
+        return max(CGFloat(durationInMinutes), 20)
+    }
     
 }
