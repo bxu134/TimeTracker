@@ -65,27 +65,27 @@ struct TimelineView: View {
             let blockHeight = calculateHeight(for: session)
             
             HStack {
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: 2)
                     .fill(Color.blue.opacity(0.8))
                     .frame(width: 4)
-                
+                    .padding(.vertical, blockHeight > 12 ? 4 : 0)
                 if blockHeight > 15 {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(session.activity?.name ?? "Unknown")
                             .font(.caption)
                             .fontWeight(.bold)
-                        
+                            .lineLimit(1)
                         if blockHeight > 30 {
                             Text("\(session.startTime.formatted(date: .omitted, time: .shortened))")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
                     }
+                    .padding(.top, 4)
                 }
                 Spacer()
             }
-            .padding(.horizontal, 8)
-            .padding(.top, blockHeight > 15 ? 8 : 2)
+            .padding(.horizontal, 6)
             .frame(height: blockHeight, alignment: .top)
             .background(Color.blue.opacity(0.15))
             .cornerRadius(4)
