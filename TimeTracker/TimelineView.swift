@@ -20,17 +20,36 @@ struct TimelineView: View {
             VStack(spacing: 0) {
                 weekStrip
                         
-                
-                ScrollView { // placeholder for actual timeline
-                    VStack {
-                        Spacer().frame(height: 100)
-                        Text("Timeline")
+                ScrollView {
+                    ZStack(alignment: .topLeading) {
+                        timeGrid
                     }
-                    .frame(maxWidth: .infinity)
+                    .frame(height: 1440)
+                    .padding(.top, 20)
+                    .padding(.bottom, 100)
                 }
             }
             .navigationTitle("Timeline")
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+    
+    private var timeGrid: some View {
+        VStack(spacing: 0) {
+            ForEach(0..<25) { hour in
+                HStack(alignment: .top) {
+                    Text(formatHour(hour))
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .frame(width: 50, alignment: .trailing)
+                        .offset(y: -7)
+                    
+                    VStack() {
+                        Divider()
+                    }
+                }
+                .frame(height: 60, alignment: .top)
+            }
         }
     }
     
@@ -75,5 +94,10 @@ struct TimelineView: View {
         return (-3...3).compactMap { calendar.date(byAdding: .day, value: $0, to: today) }
     }
     
-
+    private func formatHour(_ hour: Int) -> String {
+            if hour == 0 || hour == 24 { return "12 AM" }
+            if hour == 12 { return "12 PM" }
+            return hour < 12 ? "\(hour) AM" : "\(hour - 12) PM"
+        }
+    
 }
