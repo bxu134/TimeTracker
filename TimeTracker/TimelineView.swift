@@ -64,9 +64,11 @@ struct TimelineView: View {
             let topOffset = calculateTopOffset(for: session)
             let blockHeight = calculateHeight(for: session)
             
+            let activityColor = session.activity?.color ?? .gray
+            
             HStack {
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.blue.opacity(0.8))
+                    .fill(activityColor.opacity(0.8))
                     .frame(width: 4)
                     .padding(.vertical, blockHeight > 12 ? 4 : 0)
                 if blockHeight > 15 {
@@ -87,7 +89,7 @@ struct TimelineView: View {
             }
             .padding(.horizontal, 6)
             .frame(height: blockHeight, alignment: .top)
-            .background(Color.blue.opacity(0.15))
+            .background(activityColor.opacity(0.15))
             .cornerRadius(4)
             .clipped()
             .offset(x: 55, y: topOffset)

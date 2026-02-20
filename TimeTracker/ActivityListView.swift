@@ -14,6 +14,7 @@ struct ActivityListView: View {
     
     @State private var addSheet = false
     @State private var newActivityName = ""
+    @State private var selectedColor: Color = .blue
     
     var body: some View {
         NavigationStack {
@@ -37,11 +38,18 @@ struct ActivityListView: View {
             .sheet(isPresented: $addSheet) {
                 NavigationStack {
                     Form {
-                        if !activities.isEmpty {
-                            TextField("Activity Name", text: $newActivityName)
-                        } else {
-                            TextField("Activity Name (e.g. Fitness)", text: $newActivityName)
+                        Section {
+                            if !activities.isEmpty {
+                                TextField("Activity Name", text: $newActivityName)
+                            } else {
+                                TextField("Activity Name (e.g. Fitness)", text: $newActivityName)
+                            }
                         }
+                        
+                        Section {
+                            ColorPicker("Activity Color", selection: $selectedColor, supportsOpacity: false)
+                        }
+                        
                     }
                     .navigationTitle("New Activity")
                     .navigationBarTitleDisplayMode(.inline)
@@ -66,9 +74,10 @@ struct ActivityListView: View {
     }
     
     private func saveActivity() {
-        let newActivity = Activity(name: newActivityName)
+        let newActivity = Activity(name: newActivityName, color: selectedColor)
         modelContext.insert(newActivity)
         newActivityName = ""
+        selectedColor = .blue
         addSheet = false
     }
     
