@@ -17,6 +17,7 @@ struct MainTabView: View {
     @State private var selectedTab = 0
     
     @State private var activityToStart: Activity?
+    @State private var sessionToEnd: TimeSession?
     
     var activeSession: TimeSession? {
         sessions.first(where: {$0.isRunning})
@@ -46,13 +47,18 @@ struct MainTabView: View {
             }
             .presentationDetents([.medium, .large])
         }
+        .sheet(item: $sessionToEnd) { session in
+            EndSessionView(session: session) {
+                stopSession(session)
+            }
+        }
     }
     
     @ViewBuilder
     private var floatingStartButton: some View {
         if let active = activeSession {
             Button {
-                stopSession(active)
+                sessionToEnd = active
             } label: {
                 Image(systemName: "stop.fill")
                     .font(.title)

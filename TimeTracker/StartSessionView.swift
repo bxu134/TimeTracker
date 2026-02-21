@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+struct LocalGoal: Identifiable {
+    let id = UUID()
+    var text: String
+}
+
 struct StartSessionView: View {
     @Environment(\.dismiss) private var dismiss
     var activity: Activity
@@ -16,11 +21,22 @@ struct StartSessionView: View {
     @State private var newGoalText = ""
     @FocusState private var isInputFocused: Bool
     
-    struct LocalGoal: Identifiable {
-        let id = UUID()
-        var text: String
-    }
     @State private var goals: [LocalGoal] = []
+    
+    private var prevNotes: String? {
+        guard let pastSessions = activity.sessions, !pastSessions.isEmpty else { return nil }
+        
+        let mostRecent = pastSessions.sorted { $0.startTime > $1.startTime } .first
+        
+        if let notes = mostRecent?.notes {
+            let cleanedNote = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !cleanedNote.isEmpty {
+                return cleanedNote
+            }
+        }
+        
+        return nil
+    }
     
     var body: some View {
         NavigationStack {
@@ -32,6 +48,15 @@ struct StartSessionView: View {
                             .frame(width: 12, height: 12)
                         Text("Starting \(activity.name)")
                             .font(.headline)
+                    }
+                }
+                
+                if let oldNotes = prevNotes {
+                    Section("Notes from Last Time") {
+                        Text(oldNotes)
+                            .foregroundColor(.secondary)
+                            .fontWeight(.bold)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 
