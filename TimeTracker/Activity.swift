@@ -41,6 +41,17 @@ class Activity {
 }
 
 @Model
+class SessionGoal {
+    var text: String
+    var isCompleted: Bool
+     
+    init(text: String, isCompleted: Bool = false) {
+        self.text = text
+        self.isCompleted = isCompleted
+    }
+}
+
+@Model
 class TimeSession {
     var startTime: Date
     var endTime: Date?
@@ -50,12 +61,23 @@ class TimeSession {
     
     var activity: Activity?
     
+    @Relationship(deleteRule: .cascade)
+    var goals: [SessionGoal] = []
+    
+    var distractRating: Int = 5
+    var productivityRating: Int = 5
+    var notes: String = ""
+        
     init(startTime: Date = Date(), activity: Activity) {
         self.startTime = startTime
         self.activity = activity
         
         self.savedActivityName = activity.name
         self.savedActivityHex = activity.hexColor
+        
+        self.distractRating = 5
+        self.productivityRating = 5
+        self.notes = ""
     }
     
     var isRunning: Bool {

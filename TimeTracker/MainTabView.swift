@@ -16,6 +16,8 @@ struct MainTabView: View {
     
     @State private var selectedTab = 0
     
+    @State private var activityToStart: Activity?
+    
     var activeSession: TimeSession? {
         sessions.first(where: {$0.isRunning})
     }
@@ -37,6 +39,12 @@ struct MainTabView: View {
             }
             
             floatingStartButton
+        }
+        .sheet(item: $activityToStart) { activity in
+            StartSessionView(activity: activity) { goals in
+                startSession(for: activity, with: goals)
+            }
+            .presentationDetents([.medium, .large])
         }
     }
     
@@ -62,7 +70,7 @@ struct MainTabView: View {
                 } else {
                     ForEach(activities) { activity in
                         Button(activity.name) {
-                            startSession(for: activity)
+                            activityToStart = activity
                         }
                     }
                 }
@@ -79,13 +87,16 @@ struct MainTabView: View {
         }
     }
     
-    private func startSession(for activity: Activity) {
+    private func startSession(for activity: Activity, with goalStrings: [String]) {
         withAnimation {
             let newSession = TimeSession(activity: activity)
+            let sessionGoals = goalStrings.map { SessionGoal(text: $0) }
+            newSession.goals = sessionGoals
             modelContext.insert(newSession)
+            
+            selectedTab = 0
         }
         
-        selectedTab = 0
     }
     
     private func stopSession(_ session: TimeSession) {
