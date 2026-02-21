@@ -86,7 +86,7 @@ struct TimelineView: View {
             let topOffset = calculateTopOffset(for: session)
             let blockHeight = calculateHeight(for: session)
             
-            let activityColor = session.activity?.color ?? .gray
+            let activityColor = session.displayColor
             
             HStack {
                 RoundedRectangle(cornerRadius: 2)
@@ -95,7 +95,7 @@ struct TimelineView: View {
                     .padding(.vertical, blockHeight > 12 ? 4 : 0)
                 if blockHeight > 15 {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(session.activity?.name ?? "Unknown")
+                        Text(session.displayTitle)
                             .font(.caption)
                             .fontWeight(.bold)
                             .lineLimit(1)
