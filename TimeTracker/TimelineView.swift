@@ -17,6 +17,16 @@ struct TimelineView: View {
     @State private var currTime = Date()
     let timer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
     
+    private var filteredSessions: [TimeSession] {
+        let startOfDay = selectedDate
+        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
+        
+        return sessions.filter { session in
+            let sessionEnd = session.endTime ?? currTime
+            return session.startTime < endOfDay && sessionEnd > startOfDay
+        }
+    }
+    
     var body: some View {
         NavigationStack{
             VStack(spacing: 0) {
@@ -60,7 +70,7 @@ struct TimelineView: View {
     }
     
     private var sessionBlocks: some View {
-        ForEach(sessions) { session in
+        ForEach(filteredSessions) { session in
             let topOffset = calculateTopOffset(for: session)
             let blockHeight = calculateHeight(for: session)
             
