@@ -14,7 +14,7 @@ struct MainTabView: View {
     @Query(sort: \TimeSession.startTime, order: .reverse) private var sessions: [TimeSession]
     @Query(sort: \Activity.name) private var activities: [Activity]
     
-    @State private var selectedTab = 0
+    @State private var selectedTab = 1
     
     @State private var activityToStart: Activity?
     @State private var sessionToEnd: TimeSession?
@@ -32,11 +32,18 @@ struct MainTabView: View {
                     }
                     .tag(0)
                 
+                DashboardView()
+                    .tabItem {
+                        Label("Dashboard", systemImage: "list.bullet.rectangle.fill")
+                    }
+                    .tag(1)
+                
                 ActivityListView()
                     .tabItem {
                         Label("Activities", systemImage: "list.bullet.rectangle.fill")
                     }
-                    .tag(1)
+                
+                
             }
             
             floatingStartButton
