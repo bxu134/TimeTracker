@@ -29,6 +29,9 @@ struct DashboardView: View {
                     if let active = activeSession {
                         activeSessionCard(active)
                     }
+                    
+                   
+                    
                 }
                 .padding()
             }
@@ -66,12 +69,12 @@ struct DashboardView: View {
                     .cornerRadius(6)
             }
             .padding(.horizontal, 16)
-            .padding(.top, 12)
+            .padding(.top, 8)
             
             Text(formatElapsed(elapsed))
                 .font(.system(size: 42, weight: .bold, design: .rounded))
                 .monospacedDigit()
-                .padding(.bottom, 4)
+                .padding(.bottom, (session.goals.isEmpty ? 16 : 4))
             
             if !session.goals.isEmpty {
                 Divider()

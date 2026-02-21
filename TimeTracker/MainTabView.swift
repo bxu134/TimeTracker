@@ -19,6 +19,10 @@ struct MainTabView: View {
     @State private var activityToStart: Activity?
     @State private var sessionToEnd: TimeSession?
     
+    @State private var addSheet = false
+    @State private var newActivityName = ""
+    @State private var selectedColor: Color = .blue
+
     var activeSession: TimeSession? {
         sessions.first(where: {$0.isRunning})
     }
@@ -37,16 +41,47 @@ struct MainTabView: View {
                         Label("Dashboard", systemImage: "list.bullet.rectangle.fill")
                     }
                     .tag(1)
-                
-                ActivityListView()
-                    .tabItem {
-                        Label("Activities", systemImage: "list.bullet.rectangle.fill")
-                    }
-                
-                
             }
             
             floatingStartButton
+        }
+        .sheet(isPresented: $addSheet) {
+            NavigationStack {
+                Form {
+                    Section {
+                        if !activities.isEmpty {
+                            TextField("Activity Name", text: $newActivityName)
+                        } else {
+                            TextField("Activity Name (e.g. Fitness)", text: $newActivityName)
+                        }
+                    }
+                    
+                    Section {
+                        ColorPicker("Activity Color", selection: $selectedColor, supportsOpacity: false)
+                    }
+                    
+                }
+                .navigationTitle("New Activity")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            addSheet = false
+                            newActivityName = ""
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            let newActivity = Activity(name: newActivityName)
+                            modelContext.insert(newActivity)
+                            newActivityName = ""
+                            addSheet = false
+                        }
+                        .disabled(newActivityName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                }
+            }
+            .presentationDetents([.medium])
         }
         .sheet(item: $activityToStart) { activity in
             StartSessionView(activity: activity) { goals in
@@ -78,14 +113,16 @@ struct MainTabView: View {
             .padding(.bottom, 10)
         } else {
             Menu {
-                if activities.isEmpty {
-                    Text("No activities found. Add one first!")
-                } else {
-                    ForEach(activities) { activity in
-                        Button(activity.name) {
-                            activityToStart = activity
-                        }
+                ForEach(activities) { activity in
+                    Button(activity.name) {
+                        activityToStart = activity
                     }
+                }
+                
+                Divider()
+                
+                Button("Create New Activity", systemImage: "plus.circle") {
+                    addSheet = true
                 }
             } label: {
                 Image(systemName: "play.fill")
@@ -107,7 +144,6 @@ struct MainTabView: View {
             newSession.goals = sessionGoals
             modelContext.insert(newSession)
             
-            selectedTab = 0
         }
         
     }
