@@ -13,7 +13,8 @@ struct TimelineView: View {
     @Query(sort: \TimeSession.startTime, order: .reverse) private var sessions: [TimeSession]
     
     @State private var selectedDate: Date = Calendar.current.startOfDay(for: Date())
-
+    @State private var weekOffset: Int = 0
+    
     @State private var currTime = Date()
     let timer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
     
@@ -32,17 +33,27 @@ struct TimelineView: View {
             VStack(spacing: 0) {
                 weekStrip
                         
-                ScrollView {
-                    ZStack(alignment: .topLeading) {
-                        timeGrid
-                        sessionBlocks
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        ZStack(alignment: .topLeading) {
+                            timeGrid
+                            sessionBlocks
+                        }
+                        .frame(height: 1440)
+                        .padding(.top, 20)
+                        .padding(.bottom, 100)
                     }
-                    .frame(height: 1440)
-                    .padding(.top, 20)
-                    .padding(.bottom, 100)
-                }
-                .onReceive(timer) { input in
-                    currTime = input
+                    .onReceive(timer) { input in
+                        currTime = input
+                    }
+                    .onAppear {
+                        scrollToInitialTime(proxy: proxy)
+                    }
+                    .onChange(of: selectedDate) { _, _ in
+                        scrollToInitialTime(proxy: proxy)
+                    }
+
+                    
                 }
             }
             .navigationTitle("Timeline")
@@ -52,7 +63,7 @@ struct TimelineView: View {
     
     private var timeGrid: some View {
         VStack(spacing: 0) {
-            ForEach(0..<25) { hour in
+            ForEach(0..<25, id: \.self) { hour in
                 HStack(alignment: .top) {
                     Text(formatHour(hour))
                         .font(.caption2)
@@ -65,6 +76,7 @@ struct TimelineView: View {
                     }
                 }
                 .frame(height: 60, alignment: .top)
+                .id(hour)
             }
         }
     }
@@ -108,44 +120,78 @@ struct TimelineView: View {
     }
     
     private var weekStrip: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 15) {
-                ForEach(currentWeekDates, id: \.self) { date in
-                    let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
-                    
-                    VStack(spacing: 5) {
-                        Text(date.formatted(.dateTime.weekday(.abbreviated)))
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(isSelected ? .blue : .secondary)
+        TabView(selection: $weekOffset) {
+            ForEach(-26...26, id: \.self) { offset in
+                HStack(spacing: 0) {
+                    ForEach(weekDates(for: offset), id: \.self) { date in
+                        let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
+                        let isToday = Calendar.current.isDateInToday(date)
                         
-                        Text(date.formatted(.dateTime.day()))
-                            .font(.title3)
-                            .fontWeight(isSelected ? .bold : .regular)
-                            .foregroundColor(isSelected ? .white : .primary)
-                            .frame(width: 40, height: 40)
-                            .background(isSelected ? Color.blue : Color.clear)
-                            .clipShape(Circle())
-                    }
-                    .onTapGesture {
-                        withAnimation {
-                            selectedDate = Calendar.current.startOfDay(for: date)
+                        VStack(spacing: 5) {
+                            Text(date.formatted(.dateTime.weekday(.abbreviated)))
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(isSelected ? .blue : .secondary)
+                            
+                            Text(date.formatted(.dateTime.day()))
+                                .font(.title3)
+                                .fontWeight(isSelected ? .bold : .regular)
+                                .foregroundColor(isSelected ? .white : .primary)
+                                .frame(width: 40, height: 40)
+                                .background(isSelected ? Color.blue : Color.clear)
+                                .clipShape(Circle())
+                                .overlay(alignment: .bottom) {
+                                    if isToday {
+                                        Circle()
+                                            .fill(isSelected ? Color.white : Color.blue)
+                                            .frame(width: 4, height: 4)
+                                            .padding(.bottom, 5)
+                                    }
+                                }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation {
+                                selectedDate = Calendar.current.startOfDay(for: date)
+                            }
                         }
                     }
                 }
+                .tag(offset)
             }
-            .padding(.horizontal)
-            .padding(.vertical, 10)
         }
-        .scrollIndicators(.hidden)
+        .frame(height: 80)
+        .tabViewStyle(.page(indexDisplayMode: .never))
         .background(Color(UIColor.systemBackground))
         .shadow(color: Color.black.opacity(0.05), radius: 3, y: 3)
     }
     
-    private var currentWeekDates: [Date] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        return (-3...3).compactMap { calendar.date(byAdding: .day, value: $0, to: today) }
+    private func weekDates( for offset: Int) -> [Date] {
+        var cal = Calendar.current
+        cal.firstWeekday = 2
+        
+        let today = cal.startOfDay(for: Date())
+        let currWeekStart = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today))!
+        
+        let targetWeek = cal.date(byAdding: .weekOfYear, value: offset, to: currWeekStart)!
+        
+        return (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: targetWeek) }
+    }
+    
+    private func scrollToInitialTime(proxy: ScrollViewProxy) {
+        if Calendar.current.isDateInToday(selectedDate) {
+            let currentHour = Calendar.current.component(.hour, from: Date())
+            
+            let targetHour = max(0, currentHour - 2)
+            withAnimation {
+                proxy.scrollTo(targetHour, anchor: .top)
+            }
+        } else {
+            withAnimation {
+                proxy.scrollTo(8, anchor: .top)
+            }
+        }
     }
     
     private func formatHour(_ hour: Int) -> String {
