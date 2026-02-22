@@ -22,6 +22,10 @@ struct DashboardView: View {
         sessions.first(where: { $0.isRunning })
     }
     
+    private var recentSessions: [TimeSession] {
+        sessions.filter { !$0.isRunning }.prefix(8).map {$0}
+    }
+    
     var body: some View {
         NavigationStack {
             ScrollView{
@@ -30,7 +34,7 @@ struct DashboardView: View {
                         activeSessionCard(active)
                     }
                     
-                   
+                    recentSessionsSection
                     
                 }
                 .padding()
@@ -129,6 +133,95 @@ struct DashboardView: View {
         }
     }
     
+    private var recentSessionsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Recent Sessions")
+                .font(.headline)
+            
+            if recentSessions.isEmpty {
+                HStack {
+                    Spacer()
+                    VStack(spacing: 8) {
+                        Image(systemName: "clock")
+                            .font(.title2)
+                            .foregroundColor(.secondary)
+                        
+                        Text("No sessions yet")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 24)
+                    Spacer()
+                }
+            } else {
+                let grouped = groupedByDay(recentSessions)
+                
+                ForEach(grouped, id: \.0) { dayString, daySessions in
+                    Text(dayString)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fontWeight(.medium)
+                    
+                    ForEach(daySessions) { session in
+                        recentSessionRow(session)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(14)
+    }
+    
+    private func recentSessionRow(_ session: TimeSession) -> some View {
+        let duration = (session.endTime ?? currTime).timeIntervalSince(session.startTime)
+        let completedGoals = session.goals.filter { $0.isCompleted }.count
+        let totalGoals = session.goals.count
+        
+        return HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(session.displayColor)
+                .frame(width: 4, height: 40)
+            
+            VStack(alignment: .leading, spacing: 3) {
+                Text(session.displayTitle)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                Text(session.startTime.formatted(date: .omitted, time: .shortened))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(formatDuration(duration))
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .monospacedDigit()
+                
+                if totalGoals > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "target")
+                            .font(.caption2)
+                        Text("\(completedGoals)/\(totalGoals)")
+                            .font(.caption)
+                    }
+                    .foregroundColor(completedGoals == totalGoals ? .green : .secondary)
+                }
+            }
+        }
+        .padding(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(session.displayColor.opacity(0.3), lineWidth: (1.5))
+                .shadow(color: session.displayColor.opacity(0.2), radius: 8 )
+        )
+        .padding(.vertical, 2)
+        
+    }
+    
     private func formatElapsed(_ interval: TimeInterval) -> String {
         let hours = Int(interval) / 3600
         let minutes = (Int(interval) % 3600) / 60
@@ -138,5 +231,48 @@ struct DashboardView: View {
             return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         }
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+    private func formatDuration(_ interval: TimeInterval) -> String {
+        let hours = Int(interval) / 3600
+        let minutes = (Int(interval) % 3600) / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        }
+        return "\(minutes)m"
+    }
+    
+    private func groupedByDay(_ sessions: [TimeSession]) -> [(String, [TimeSession])] {
+        let cal = Calendar.current
+        var groups: [(String, [TimeSession])] = []
+        var currDayString: String?
+        var currGroup: [TimeSession] = []
+        
+        for session in sessions {
+            let dayStr: String
+            if cal.isDateInToday(session.startTime) {
+                dayStr = "Today"
+            } else if cal.isDateInYesterday(session.startTime) {
+                dayStr = "Yesterday"
+            } else {
+                dayStr = session.startTime.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
+            }
+            
+            if dayStr == currDayString {
+                currGroup.append(session)
+            } else {
+                if let prevDay = currDayString {
+                    groups.append((prevDay, currGroup))
+                }
+                currDayString = dayStr
+                currGroup = [session]
+            }
+        }
+        if let lastDay = currDayString {
+            groups.append((lastDay, currGroup))
+        }
+        
+        return groups
     }
 }
