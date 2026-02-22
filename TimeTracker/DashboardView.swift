@@ -18,6 +18,8 @@ struct DashboardView: View {
      
     @State private var isBreathing = false
     
+    @State private var selectedSession: TimeSession?
+    
     var activeSession: TimeSession? {
         sessions.first(where: { $0.isRunning })
     }
@@ -27,22 +29,43 @@ struct DashboardView: View {
     }
     
     var body: some View {
-        NavigationStack {
-            ScrollView{
-                VStack(spacing: 20) {
-                    if let active = activeSession {
-                        activeSessionCard(active)
+        ZStack {
+            NavigationStack {
+                ScrollView{
+                    VStack(spacing: 20) {
+                        if let active = activeSession {
+                            activeSessionCard(active)
+                        }
+                        
+                        recentSessionsSection
+                        
                     }
-                    
-                    recentSessionsSection
-                    
+                    .padding()
                 }
-                .padding()
+                .navigationTitle("Dashboard")
+                .navigationBarTitleDisplayMode(.large)
+                .onReceive(timer) { input in
+                    currTime = input
+                }
             }
-            .navigationTitle("Dashboard")
-            .navigationBarTitleDisplayMode(.large)
-            .onReceive(timer) { input in
-                currTime = input
+            
+            if let session = selectedSession {
+                Color.black.opacity(0.4)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            selectedSession = nil
+                        }
+                    }
+                    .zIndex(1)
+                
+                SessionDetailView(session: session, onClose: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        selectedSession = nil
+                    }
+                })
+                .zIndex(2)
+                .transition(.scale(scale: 0.9).combined(with: .opacity))
             }
         }
     }
@@ -219,6 +242,12 @@ struct DashboardView: View {
                 .shadow(color: session.displayColor.opacity(0.2), radius: 8 )
         )
         .padding(.vertical, 2)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                selectedSession = session
+            }
+        }
         
     }
     
