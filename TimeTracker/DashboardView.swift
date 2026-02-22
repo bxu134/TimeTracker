@@ -19,6 +19,7 @@ struct DashboardView: View {
     @State private var isBreathing = false
     
     @State private var selectedSession: TimeSession?
+    @State private var showActivityList = false
     
     var activeSession: TimeSession? {
         sessions.first(where: { $0.isRunning })
@@ -33,6 +34,32 @@ struct DashboardView: View {
             NavigationStack {
                 ScrollView{
                     VStack(spacing: 20) {
+                        HStack {
+                            Text("Dashboard")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                            
+                            Spacer()
+                            
+                            Menu {
+                                Button {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                        showActivityList = true
+                                    }
+                                } label : {
+                                    Label("View Activity List", systemImage: "list.bullet")
+                                }
+                            } label : {
+                                Image(systemName: "line.3.horizontal")
+                                    .font(.title2)
+                                    .foregroundColor(.primary)
+                                    .padding(8)
+                                    .background(Color(UIColor.secondarySystemGroupedBackground))
+                                    .clipShape(Circle())
+                            }
+                        }
+                        .padding(.bottom, 8)
+                        
                         if let active = activeSession {
                             activeSessionCard(active)
                         }
@@ -44,11 +71,28 @@ struct DashboardView: View {
                     }
                     .padding()
                 }
-                .navigationTitle("Dashboard")
-                .navigationBarTitleDisplayMode(.large)
                 .onReceive(timer) { input in
                     currTime = input
                 }
+            }
+            
+            if showActivityList {
+                Color.black.opacity(0.4)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            showActivityList = false
+                        }
+                    }
+                    .zIndex(3)
+                
+                ActivityListView(onClose: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        showActivityList = false
+                    }
+                })
+                .zIndex(4)
+                .transition(.scale(scale: 0.9).combined(with: .opacity))
             }
             
             if let session = selectedSession {
