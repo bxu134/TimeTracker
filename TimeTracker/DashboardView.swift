@@ -23,6 +23,8 @@ struct DashboardView: View {
     @State private var showActivityList = false
     @State private var weekOffset: Int = 0
     
+    @State private var confirmDeleteAll = false
+    
     var activeSession: TimeSession? {
         sessions.first(where: { $0.isRunning })
     }
@@ -51,6 +53,11 @@ struct DashboardView: View {
                                 } label : {
                                     Label("View Activity List", systemImage: "list.bullet")
                                 }
+                                Button(role: .destructive) {
+                                    confirmDeleteAll = true
+                                } label : {
+                                    Label("Delete ALL Data", systemImage: "trash.slash")
+                                }
                             } label : {
                                 Image(systemName: "line.3.horizontal")
                                     .font(.title2)
@@ -59,6 +66,19 @@ struct DashboardView: View {
                             }
                         }
                         .padding(.bottom, 8)
+                        .confirmationDialog("Delete ALL Data?", isPresented: $confirmDeleteAll, titleVisibility: .visible) {
+                            Button("Delete ALL Data", role: .destructive) {
+                                for activity in activities {
+                                    modelContext.delete(activity)
+                                }
+                                for session in sessions {
+                                    modelContext.delete(session)
+                                }
+                            }
+                            Button("Cancel", role: .cancel) {}
+                        } message: {
+                            Text("This will permanently delete ALL data.")
+                        }
                         
                         if let active = activeSession {
                             activeSessionCard(active)
