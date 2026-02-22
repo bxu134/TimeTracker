@@ -111,7 +111,10 @@ struct EditActivityView: View {
     
     @State private var draftName = ""
     @State private var draftColor: Color = .blue
+    
     @State private var confirmDelete = false
+    @State private var confirmDeleteHistory = false
+    @Query private var allSessions: [TimeSession]
     
     var body: some View {
         NavigationStack {
@@ -123,12 +126,23 @@ struct EditActivityView: View {
                 
                 Section {
                     Button(role: .destructive) {
+                        confirmDeleteHistory = true
+                    } label : {
+                        Text("Delete All History")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                
+                Section {
+                    Button(role: .destructive) {
                         confirmDelete = true
                     } label : {
                         Text("Delete Activity")
                             .frame(maxWidth: .infinity)
                     }
                 }
+                
+                
             }
             .navigationTitle("Edit Activity")
             .navigationBarTitleDisplayMode(.inline)
@@ -149,6 +163,18 @@ struct EditActivityView: View {
             .onAppear {
                 draftName = activity.name
                 draftColor = activity.color
+            }
+            .confirmationDialog("Delete All Session History?", isPresented: $confirmDeleteHistory, titleVisibility: .visible) {
+                Button("Delete All History", role: .destructive) {
+                    let history = allSessions.filter { $0.activity == activity }
+                    
+                    for session in history {
+                        modelContext.delete(session)
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will permananently delete ALL past sessions for \(activity.name). The activity will not be deleted")
             }
             .confirmationDialog("Delete \(activity.name)?", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("Delete", role: .destructive) {
