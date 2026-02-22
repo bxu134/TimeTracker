@@ -9,6 +9,8 @@ import SwiftUI
 import SwiftData
 
 struct SessionDetailView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     var session: TimeSession
     var onClose: () -> Void
     
@@ -50,7 +52,7 @@ struct SessionDetailView: View {
                         }
                     }
                     .padding()
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
+                    .background(colorScheme == .dark ? Color(UIColor.tertiarySystemGroupedBackground) : Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(12)
                     
                     VStack(alignment: .leading, spacing: 12) {
@@ -75,7 +77,7 @@ struct SessionDetailView: View {
                         RatingBarView(rating: session.distractRating)
                     }
                     .padding()
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
+                    .background(colorScheme == .dark ? Color(UIColor.tertiarySystemGroupedBackground) : Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(12)
                     
                     if !session.goals.isEmpty {
@@ -96,7 +98,7 @@ struct SessionDetailView: View {
                             }
                         }
                         .padding()
-                        .background(Color(UIColor.secondarySystemGroupedBackground))
+                        .background(colorScheme == .dark ? Color(UIColor.tertiarySystemGroupedBackground) : Color(UIColor.secondarySystemGroupedBackground))
                         .cornerRadius(12)
                     }
                 }
@@ -104,7 +106,7 @@ struct SessionDetailView: View {
             }
         }
         .frame(maxWidth: 340, maxHeight: 550)
-        .background(Color(UIColor.systemGroupedBackground))
+        .background(colorScheme == .dark ? Color(UIColor.secondarySystemGroupedBackground) : Color(UIColor.systemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: Color.black.opacity(0.2), radius: 15, x: 0, y: 8)
     }

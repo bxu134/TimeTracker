@@ -10,6 +10,7 @@ import SwiftData
 
 struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @Query(sort: \TimeSession.startTime, order: .reverse) private var sessions: [TimeSession]
     @Query(sort: \Activity.name) private var activities: [Activity]
     
@@ -54,8 +55,6 @@ struct DashboardView: View {
                                     .font(.title2)
                                     .foregroundColor(.primary)
                                     .padding(8)
-                                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                                    .clipShape(Circle())
                             }
                         }
                         .padding(.bottom, 8)
