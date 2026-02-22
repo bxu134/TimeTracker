@@ -37,6 +37,8 @@ struct DashboardView: View {
                             activeSessionCard(active)
                         }
                         
+                        streakSection
+                        
                         recentSessionsSection
                         
                     }
@@ -156,6 +158,91 @@ struct DashboardView: View {
         }
     }
     
+    private var streakSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Activity")
+                .font(.headline)
+            
+            HStack(spacing: 16) {
+                streakStat(
+                    value: "\(currentStreak)",
+                    label: "Day Streak",
+                    icon: "flame.fill",
+                    color: .orange
+                )
+                
+                streakStat(
+                    value: "\(daysTrackedThisWeek)/7",
+                    label: "This Week",
+                    icon: "calendar",
+                    color: .blue
+                )
+                
+                streakStat(
+                    value: "\(totalSessionsThisWeek)",
+                    label: "Sessions",
+                    icon: "bolt.fill",
+                    color: .purple
+                )
+            }
+            
+            weekGrid
+        }
+        .padding(16)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(14)
+    }
+    
+    private func streakStat(value: String, label: String, icon: String, color: Color) -> some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .foregroundColor(color)
+                    .font(.caption)
+                Text(value)
+                    .font(.title3)
+                    .fontWeight(.bold)
+            }
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+    
+    private var weekGrid: some View {
+        var cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        cal.firstWeekday = 2
+        
+        let currWeekStart = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today))!
+        let targetWeek = cal.date(byAdding: .weekOfYear, value: 0, to: currWeekStart)!
+        
+        let days: [Date] = (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: targetWeek) }
+        
+        return HStack(spacing: 6) {
+            ForEach(days, id: \.self) { day in
+                let hasSession = dayHasSession(day)
+                let isToday = cal.isDateInToday(day)
+                
+                VStack(spacing: 4) {
+                    Text(day.formatted(.dateTime.weekday(.narrow)))
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(hasSession ? Color.green.opacity(0.8) : Color(UIColor.tertiarySystemFill))
+                        .frame(height:24)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(isToday ? Color.primary.opacity(0.3) : Color.clear, lineWidth: 1)
+                        )
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+    
     private var recentSessionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Recent Sessions")
@@ -270,6 +357,69 @@ struct DashboardView: View {
             return "\(hours)h \(minutes)m"
         }
         return "\(minutes)m"
+    }
+    
+    private func dayHasSession(_ day: Date) -> Bool {
+           let cal = Calendar.current
+           let startOfDay = cal.startOfDay(for: day)
+           guard let endOfDay = cal.date(byAdding: .day, value: 1, to: startOfDay) else { return false }
+           
+           return sessions.contains { session in
+               session.startTime >= startOfDay && session.startTime < endOfDay
+           }
+    }
+    
+    private var currentStreak: Int {
+        let cal = Calendar.current
+        var streak = 0
+        var checkDate = cal.startOfDay(for: Date())
+        
+        if !dayHasSession(checkDate) && activeSession == nil {
+            guard let yesterday = cal.date(byAdding: .day, value: -1, to: checkDate) else { return 0 }
+            checkDate = yesterday
+        }
+        
+        while dayHasSession(checkDate) {
+            streak += 1
+            guard let prev = cal.date(byAdding: .day, value: -1, to: checkDate) else { break }
+            checkDate = prev
+        }
+        
+        return streak
+    }
+    
+    private var daysTrackedThisWeek: Int {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        
+        var weekStart = today
+        var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)
+        if let ws = cal.date(from: comps) {
+            weekStart = ws
+        }
+        
+        var count = 0
+        for i in 0..<7 {
+            guard let day = cal.date(byAdding: .day, value: i, to: weekStart) else { continue }
+            if day > today { break }
+            if dayHasSession(day) { count += 1 }
+        }
+        
+        return count
+    }
+    
+    private var totalSessionsThisWeek: Int {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        guard let endOfToday = cal.date(byAdding: .day, value: 1, to: today) else { return 0 }
+        
+        var weekStart = today
+        let comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)
+        if let ws = cal.date(from: comps) {
+            weekStart = ws
+        }
+        
+        return sessions.filter { $0.startTime >= weekStart && $0.startTime < endOfToday }.count
     }
     
     private func groupedByDay(_ sessions: [TimeSession]) -> [(String, [TimeSession])] {

@@ -73,6 +73,7 @@ struct MainTabView: View {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Save") {
                             let newActivity = Activity(name: newActivityName)
+                            newActivity.updateDetails(newName: newActivityName, newColor: selectedColor)
                             modelContext.insert(newActivity)
                             newActivityName = ""
                             addSheet = false
