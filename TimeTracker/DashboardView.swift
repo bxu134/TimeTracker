@@ -16,11 +16,12 @@ struct DashboardView: View {
     
     @State private var currTime = Date()
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-     
+    
     @State private var isBreathing = false
     
     @State private var selectedSession: TimeSession?
     @State private var showActivityList = false
+    @State private var weekOffset: Int = 0
     
     var activeSession: TimeSession? {
         sessions.first(where: { $0.isRunning })
@@ -215,21 +216,55 @@ struct DashboardView: View {
                 )
                 
                 streakStat(
-                    value: "\(daysTrackedThisWeek)/7",
-                    label: "This Week",
+                    value: "\(daysTracked(for: weekOffset))/7",
+                    label: dynamicWeekLabel,
                     icon: "calendar",
                     color: .blue
                 )
                 
                 streakStat(
-                    value: "\(totalSessionsThisWeek)",
+                    value: "\(totalSessions(for: weekOffset))",
                     label: "Sessions",
                     icon: "bolt.fill",
                     color: .purple
                 )
             }
             
-            weekGrid
+            HStack {
+                Button {
+                    withAnimation {
+                        if weekOffset > -26 {
+                            weekOffset -= 1
+                        }
+                    }
+                } label : {
+                    Image(systemName: "chevron.left")
+                        .font(.body.weight(.bold))
+                        .foregroundColor(Color(UIColor.tertiarySystemGroupedBackground))
+                }
+               
+                TabView(selection: $weekOffset) {
+                    ForEach(-26...4, id: \.self) { offset in
+                        weekGrid(for: offset)
+                            .tag(offset)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(height: 50)
+                
+                Button {
+                    withAnimation {
+                        if weekOffset < 4 {
+                            weekOffset += 1
+                        }
+                    }
+                } label : {
+                    Image(systemName: "chevron.right")
+                        .font(.body.weight(.bold))
+                        .foregroundColor(Color(UIColor.tertiarySystemGroupedBackground))
+                }
+            }
+            
         }
         .padding(16)
         .background(Color(UIColor.secondarySystemGroupedBackground))
@@ -253,13 +288,13 @@ struct DashboardView: View {
         .frame(maxWidth: .infinity)
     }
     
-    private var weekGrid: some View {
+    private func weekGrid(for offset: Int) -> some View {
         var cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         cal.firstWeekday = 2
         
         let currWeekStart = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today))!
-        let targetWeek = cal.date(byAdding: .weekOfYear, value: 0, to: currWeekStart)!
+        let targetWeek = cal.date(byAdding: .weekOfYear, value: offset, to: currWeekStart)!
         
         let days: [Date] = (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: targetWeek) }
         
@@ -403,13 +438,13 @@ struct DashboardView: View {
     }
     
     private func dayHasSession(_ day: Date) -> Bool {
-           let cal = Calendar.current
-           let startOfDay = cal.startOfDay(for: day)
-           guard let endOfDay = cal.date(byAdding: .day, value: 1, to: startOfDay) else { return false }
-           
-           return sessions.contains { session in
-               session.startTime >= startOfDay && session.startTime < endOfDay
-           }
+        let cal = Calendar.current
+        let startOfDay = cal.startOfDay(for: day)
+        guard let endOfDay = cal.date(byAdding: .day, value: 1, to: startOfDay) else { return false }
+        
+        return sessions.contains { session in
+            session.startTime >= startOfDay && session.startTime < endOfDay
+        }
     }
     
     private var currentStreak: Int {
@@ -431,7 +466,7 @@ struct DashboardView: View {
         return streak
     }
     
-    private var daysTrackedThisWeek: Int {
+    private func daysTracked(for offset: Int) -> Int {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         
@@ -441,20 +476,20 @@ struct DashboardView: View {
             weekStart = ws
         }
         
+        guard let targetWeekStart = cal.date(byAdding: .weekOfYear, value: offset, to: weekStart) else { return 0 }
+        
         var count = 0
         for i in 0..<7 {
-            guard let day = cal.date(byAdding: .day, value: i, to: weekStart) else { continue }
-            if day > today { break }
-            if dayHasSession(day) { count += 1 }
+            guard let day = cal.date(byAdding: .day, value: i, to: targetWeekStart) else { continue }
+            if dayHasSession(day) { count += 1}
         }
         
         return count
     }
     
-    private var totalSessionsThisWeek: Int {
+    private func totalSessions(for offset: Int) -> Int {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
-        guard let endOfToday = cal.date(byAdding: .day, value: 1, to: today) else { return 0 }
         
         var weekStart = today
         let comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)
@@ -462,7 +497,26 @@ struct DashboardView: View {
             weekStart = ws
         }
         
-        return sessions.filter { $0.startTime >= weekStart && $0.startTime < endOfToday }.count
+        guard let targetWeekStart = cal.date(byAdding: .weekOfYear, value: offset, to: weekStart),
+              let targetWeekEnd = cal.date(byAdding: .day, value: 7, to: targetWeekStart) else { return 0 }
+        
+        return sessions.filter { $0.startTime >= targetWeekStart && $0.startTime < targetWeekEnd }.count
+    }
+    
+    private var dynamicWeekLabel: String {
+        if weekOffset == 0 { return "This Week" }
+        if weekOffset == -1 { return "Last Week" }
+        
+        var cal = Calendar.current
+        cal.firstWeekday = 2
+        
+        let today = cal.startOfDay(for: Date())
+        var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)
+        if let ws = cal.date(from: comps),
+           let targetWeekStart = cal.date(byAdding: .weekOfYear, value: weekOffset, to: ws) {
+            return targetWeekStart.formatted(.dateTime.month(.abbreviated).day())
+        }
+        return "Week"
     }
     
     private func groupedByDay(_ sessions: [TimeSession]) -> [(String, [TimeSession])] {
